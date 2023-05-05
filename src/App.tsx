@@ -1,4 +1,4 @@
-import { createEffect, createSignal, For, onMount, Show } from "solid-js";
+import { createEffect, createSignal, For, onMount } from "solid-js";
 import { invoke } from "@tauri-apps/api/tauri";
 import { Board } from "../src-tauri/bindings/Board";
 import { Piece } from "../src-tauri/bindings/Piece";
@@ -34,6 +34,8 @@ function App() {
 	createEffect(() => {
 		console.log("from()", from());
 		console.log("to()", to());
+		console.log("currentSquare()", currentSquare());
+		console.log("lastSquare()", lastSquare());
 	});
 
 	return (
@@ -83,21 +85,34 @@ function BoardSquare(props: Piece) {
 	return (
 		<div
 			onclick={() => {
-				if (props.color === "Empty") {
-					setCurrentSquare({ r: -1, f: -1 });
-					if (from().r !== -1 && to().r !== -2) {
-						setFrom({ r: -1, f: -1 });
-						setTo({ r: -2, f: -2 });
-					}
-				} else {
-					setCurrentSquare({ r: props.rank, f: props.file });
-				}
-				if (from().r === -1) {
+				setCurrentSquare({ r: props.rank, f: props.file });
+				if (from().r === -1 && props.color !== "Empty") {
 					setFrom({ r: props.rank, f: props.file });
-				} else if (to().r === -2) {
+				}
+				if (
+					from().r !== -1 &&
+					to().r === -2 &&
+					!(props.rank === from().r && props.file === from().f) &&
+					props.color !== board().squares[from().r][from().f].color
+				) {
 					setTo({ r: props.rank, f: props.file });
 					make_move();
 				}
+				// if (props.color === "Empty") {
+				// 	setCurrentSquare({ r: -1, f: -1 });
+				// 	if (from().r !== -1 && to().r !== -2) {
+				// 		setFrom({ r: -1, f: -1 });
+				// 		setTo({ r: -2, f: -2 });
+				// 	}
+				// } else {
+				// 	setCurrentSquare({ r: props.rank, f: props.file });
+				// }
+				// if (from().r === -1) {
+				// 	setFrom({ r: props.rank, f: props.file });
+				// } else if (to().r === -2) {
+				// 	setTo({ r: props.rank, f: props.file });
+				// 	make_move();
+				// }
 			}}
 			class={`flex items-center justify-center h-20 w-20 text-6xl ${
 				isCurrentSquare(props.rank, props.file) ? "bg-orange-500" : bg_color
