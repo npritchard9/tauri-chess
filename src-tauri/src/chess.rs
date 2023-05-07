@@ -281,10 +281,11 @@ impl Board {
                         }
                         // if opposing piece is 1 step in front diagonally we can attack it
                         // check this logic
-                        if self.squares[nr][p.file + 1].color == Color::White {
+                        if p.file < 7 && self.squares[nr][p.file + 1].color == Color::White {
+                            // doesnt rerender everything obviously, but it needs to
                             available.push((nr, (p.file + 1)));
                         }
-                        if self.squares[nr][p.file - 1].color == Color::White {
+                        if p.file > 0 && self.squares[nr][p.file - 1].color == Color::White {
                             available.push((nr, (p.file - 1)));
                         }
                     }
@@ -294,7 +295,10 @@ impl Board {
                 println!("available moves: {:?}", &available);
                 available
             }
-            PieceName::Empty => todo!(),
+            PieceName::Empty => {
+                println!("Empty: {p:#?}");
+                available
+            }
         }
     }
 
