@@ -1,5 +1,4 @@
 use serde::{Deserialize, Serialize};
-use std::fmt;
 use ts_rs::TS;
 
 #[derive(Debug, Clone, TS, Copy, Eq, PartialEq, Serialize, Deserialize)]
@@ -8,16 +7,6 @@ pub enum Color {
     White,
     Black,
     Empty,
-}
-
-impl fmt::Display for Color {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            Color::White => write!(f, "W"),
-            Color::Black => write!(f, "B"),
-            Color::Empty => write!(f, "E"),
-        }
-    }
 }
 
 #[derive(Debug, Clone, TS, Copy, Eq, PartialEq, Serialize, Deserialize)]
@@ -30,20 +19,6 @@ pub enum PieceName {
     Knight,
     Pawn,
     Empty,
-}
-
-impl fmt::Display for PieceName {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            PieceName::King => write!(f, " King "),
-            PieceName::Queen => write!(f, " Queen"),
-            PieceName::Rook => write!(f, " Rook "),
-            PieceName::Bishop => write!(f, "Bishop"),
-            PieceName::Knight => write!(f, "Knight"),
-            PieceName::Pawn => write!(f, " Pawn "),
-            PieceName::Empty => write!(f, " Empty"),
-        }
-    }
 }
 
 #[derive(Debug, Clone, Copy, TS, PartialEq, Eq, Serialize, Deserialize)]
@@ -68,12 +43,6 @@ impl Piece {
     }
 }
 
-impl fmt::Display for Piece {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{} {}", self.color, self.name)
-    }
-}
-
 #[derive(Debug, Clone, TS, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[ts(export)]
 pub struct ControlledBy {
@@ -86,18 +55,6 @@ pub struct ControlledBy {
 pub struct Board {
     pub squares: [[Piece; 8]; 8],
     pub turn: usize,
-}
-
-impl fmt::Display for Board {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        for rank in &self.squares {
-            for file in rank {
-                write!(f, "{file} ")?;
-            }
-            writeln!(f)?;
-        }
-        write!(f, "")
-    }
 }
 
 impl Board {
@@ -147,29 +104,30 @@ impl Board {
                     if i == 4 {
                         continue;
                     }
-                    // might run into usize issues
-                    let nr = rank + ((i % 3) - 1);
-                    let nf = file + ((i / 3) - 1);
+                    //convert to i8 to make sure we avoid overflows
+                    let nr = rank as i8 + ((i as i8 % 3) - 1);
+                    let nf = file as i8 + ((i as i8 / 3) - 1);
 
-                    if nr < 8 && nf < 8 {
+                    if (0..8).contains(&nr) && (0..8).contains(&nf) {
+                        let mut curr = self.squares[nr as usize][nf as usize];
                         match p.color {
                             Color::White => {
-                                self.squares[nr][nf].controlled_by.white += 1;
-                                if self.squares[nr][nf].controlled_by.black == 0 {
-                                    available.push((nr, nf));
+                                curr.controlled_by.white += 1;
+                                if curr.controlled_by.black == 0 && curr.color != Color::White {
+                                    available.push((nr as usize, nf as usize));
                                 }
                             }
                             Color::Black => {
-                                self.squares[nr][nf].controlled_by.black += 1;
-                                if self.squares[nr][nf].controlled_by.white == 0 {
-                                    available.push((nr, nf));
+                                curr.controlled_by.black += 1;
+                                if curr.controlled_by.white == 0 && curr.color != Color::Black {
+                                    available.push((nr as usize, nf as usize));
                                 }
                             }
                             _ => continue,
                         }
                     }
                 }
-                println!("{:?}", &available);
+                println!("available moves: {:?}", &available);
                 available
             }
             PieceName::Queen => {
@@ -191,7 +149,6 @@ impl Board {
                     let mut nf = p.file as i8 + m.1;
 
                     // check
-                    println!("nr: {nr}, nf: {nf}");
                     while (0..8).contains(&nr)
                         && (0..8).contains(&nf)
                         && self.squares[nr as usize][nf as usize].color == Color::Empty
@@ -207,7 +164,7 @@ impl Board {
                         available.push((nr as usize, nf as usize));
                     }
                 }
-                println!("{:?}", &available);
+                println!("available moves: {:?}", &available);
                 available
             }
             PieceName::Rook => {
@@ -232,7 +189,7 @@ impl Board {
                         available.push((nr as usize, nf as usize));
                     }
                 }
-                println!("{:?}", &available);
+                println!("available moves: {:?}", &available);
                 available
             }
             PieceName::Bishop => {
@@ -257,7 +214,7 @@ impl Board {
                         available.push((nr as usize, nf as usize));
                     }
                 }
-                println!("{:?}", &available);
+                println!("available moves: {:?}", &available);
                 available
             }
             PieceName::Knight => {
@@ -274,15 +231,15 @@ impl Board {
                 for m in moves {
                     let nr = p.rank as i8 + m.0;
                     let nf = p.file as i8 + m.1;
-                    if (0..8).contains(&nr) && (0..8).contains(&nf) {
-                        if self.squares[nr as usize][nf as usize].color == Color::Empty
-                            || self.squares[nr as usize][nf as usize].color != p.color
-                        {
-                            available.push((nr as usize, nf as usize));
-                        }
+                    if (0..8).contains(&nr)
+                        && (0..8).contains(&nf)
+                        && (self.squares[nr as usize][nf as usize].color == Color::Empty
+                            || self.squares[nr as usize][nf as usize].color != p.color)
+                    {
+                        available.push((nr as usize, nf as usize));
                     }
                 }
-                println!("{:?}", &available);
+                println!("available moves: {:?}", &available);
                 available
             }
             PieceName::Pawn => {
@@ -334,7 +291,7 @@ impl Board {
                     // nothing?
                     Color::Empty => (),
                 }
-                println!("Available moves: {:?}", &available);
+                println!("available moves: {:?}", &available);
                 available
             }
             PieceName::Empty => todo!(),
@@ -344,20 +301,30 @@ impl Board {
     // return true if move was made, else false
     // white moves are odd
     // black moves are even
-    pub fn make_move(&mut self, r1: usize, f1: usize, r2: usize, f2: usize) -> bool {
+    pub fn make_move(
+        &mut self,
+        moves: Vec<(usize, usize)>,
+        r1: usize,
+        f1: usize,
+        r2: usize,
+        f2: usize,
+    ) -> bool {
         // index into enum to see if correct turn
         if self.turn % 2 == self.squares[r1][f1].color as usize {
-            let moves = self.get_legal_moves(r1, f1);
+            //let moves = self.get_legal_moves(r1, f1);
             if moves.contains(&(r2, f2)) {
                 println!("Moving to {}, {}", r2, f2);
-                self.squares[r2][f2] = self.squares[r1][f1].clone();
+                self.squares[r2][f2] = self.squares[r1][f1];
                 self.squares[r2][f2].rank = r2;
                 self.squares[r2][f2].file = f2;
                 self.squares[r1][f1] = Piece::new(PieceName::Empty, Color::Empty, r1, f1);
                 self.turn += 1;
                 true
             } else {
-                println!("Available moves: {:?}, your move: ({}, {})", &moves, r2, f2);
+                println!(
+                    "CANT MAKE MOVE: Available moves: {:?}, your move: ({}, {})",
+                    &moves, r2, f2
+                );
                 false
             }
         } else {

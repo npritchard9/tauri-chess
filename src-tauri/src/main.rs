@@ -21,20 +21,32 @@ fn get_board(board: State<BoardState>) -> Board {
 }
 
 #[tauri::command]
-fn check_move(board: State<BoardState>, from: Coord) -> Vec<(usize, usize)> {
+fn get_moves(board: State<BoardState>, from: Coord) -> Vec<(usize, usize)> {
     Board::get_legal_moves(&mut board.0.lock().unwrap(), from.r, from.f)
 }
 
 #[tauri::command]
-fn make_move(board: State<BoardState>, from: Coord, to: Coord) -> Board {
-    Board::make_move(&mut board.0.lock().unwrap(), from.r, from.f, to.r, to.f);
+fn make_move(
+    board: State<BoardState>,
+    moves: Vec<(usize, usize)>,
+    from: Coord,
+    to: Coord,
+) -> Board {
+    Board::make_move(
+        &mut board.0.lock().unwrap(),
+        moves,
+        from.r,
+        from.f,
+        to.r,
+        to.f,
+    );
     board.0.lock().unwrap().clone()
 }
 
 fn main() {
     tauri::Builder::default()
         .manage(BoardState(Mutex::new(Board::new())))
-        .invoke_handler(tauri::generate_handler![get_board, check_move, make_move])
+        .invoke_handler(tauri::generate_handler![get_board, get_moves, make_move])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }
